@@ -2,7 +2,7 @@
 	"use strict";
 
 	/*
-		Welcome to the SSO OAuth plugin! If you're inspecting this code, you're probably looking to
+		Welcome to the Metry SSO plugin! If you're inspecting this code, you're probably looking to
 		hook up NodeBB with your existing OAuth endpoint.
 
 		Step 1: Fill in the "constants" section below with the requisite informaton. Either the "oauth"
@@ -49,8 +49,8 @@
 	 */
 
 	var constants = Object.freeze({
-			type: '',	// Either 'oauth' or 'oauth2'
-			name: '',	// Something unique to your OAuth provider in lowercase, like "github", or "nodebb"
+			type: 'oauth2',	// Either 'oauth' or 'oauth2'
+			name: 'metry',	// Something unique to your OAuth provider in lowercase, like "github", or "nodebb"
 			oauth: {
 				requestTokenURL: '',
 				accessTokenURL: '',
@@ -59,22 +59,24 @@
 				consumerSecret: nconf.get('oauth:secret'),	// don't change this line
 			},
 			oauth2: {
-				authorizationURL: '',
-				tokenURL: '',
+				authorizationURL: 'https://app.metry.io/oauth/authorize',
+				tokenURL: 'https://app.metry.io/oauth/token',
 				clientID: nconf.get('oauth:id'),	// don't change this line
 				clientSecret: nconf.get('oauth:secret'),	// don't change this line
 			},
-			userRoute: ''	// This is the address to your app's "user profile" API endpoint (expects JSON)
+      userRoute: 'https://app.metry.io/api/v2/accounts/me',	// This is the address to your app's "user profile" API endpoint (expects JSON)
+      collaboratorRoute: 'https://app.metry.io/api/v2/accounts/me/authenticated_collaborator',
+      scope: nconf.get('oauth:scope') || 'basic'
 		}),
 		configOk = false,
-		OAuth = {}, passportOAuth, opts;
+    OAuth = {}, passportOAuth, opts;
 
 	if (!constants.name) {
-		winston.error('[sso-oauth] Please specify a name for your OAuth provider (library.js:32)');
+		winston.error('[sso-metry] Please specify a name for your OAuth provider (library.js:32)');
 	} else if (!constants.type || (constants.type !== 'oauth' && constants.type !== 'oauth2')) {
-		winston.error('[sso-oauth] Please specify an OAuth strategy to utilise (library.js:31)');
+		winston.error('[sso-metry] Please specify an OAuth strategy to utilise (library.js:31)');
 	} else if (!constants.userRoute) {
-		winston.error('[sso-oauth] User Route required (library.js:31)');
+		winston.error('[sso-metry] User Route required (library.js:31)');
 	} else {
 		configOk = true;
 	}
@@ -111,17 +113,30 @@
 				opts.callbackURL = nconf.get('url') + '/auth/' + constants.name + '/callback';
 
 				passportOAuth.Strategy.prototype.userProfile = function(accessToken, done) {
+          var self = this
 					this._oauth2.get(constants.userRoute, accessToken, function(err, body, res) {
 						if (err) { return done(new InternalOAuthError('failed to fetch user profile', err)); }
 
 						try {
-							var json = JSON.parse(body);
-							OAuth.parseUserReturn(json, function(err, profile) {
-								if (err) return done(err);
-								profile.provider = constants.name;
+              var json = JSON.parse(body);
 
-								done(null, profile);
-							});
+              if (json.data.is_organization) {
+                self._oauth2.get(constants.collaboratorRoute, accessToken, function(err, body, res) {
+                  if (err) { return done(new InternalOAuthError('failed to fetch user profile', err)); }
+
+                  OAuth.parseUserReturn(JSON.parse(body), function(err, profile) {
+                    if (err) return done(err);
+                    profile.provider = constants.name;
+                    done(null, profile);
+                  });
+                })
+              } else {
+                OAuth.parseUserReturn(json, function(err, profile) {
+                  if (err) return done(err);
+                  profile.provider = constants.name;
+                  done(null, profile);
+                });
+              }
 						} catch(e) {
 							done(e);
 						}
@@ -161,25 +176,20 @@
 		}
 	};
 
-	OAuth.parseUserReturn = function(data, callback) {
+	OAuth.parseUserReturn = function(body, callback) {
 		// Alter this section to include whatever data is necessary
 		// NodeBB *requires* the following: id, displayName, emails.
 		// Everything else is optional.
 
-		// Find out what is available by uncommenting this line:
-		// console.log(data);
-
-		var profile = {};
-		profile.id = data.id;
-		profile.displayName = data.name;
-		profile.emails = [{ value: data.email }];
+    var profile = {};
+    var email = (body.data.account || body.data).username;
+    var name = (body.data.account || body.data).name || email;
+		profile.id = body.data._id;
+		profile.displayName = name;
+		profile.emails = [{ value: email }];
 
 		// Do you want to automatically make somebody an admin? This line might help you do that...
 		// profile.isAdmin = data.isAdmin ? true : false;
-
-		// Delete or comment out the next TWO (2) lines when you are ready to proceed
-		process.stdout.write('===\nAt this point, you\'ll need to customise the above section to id, displayName, and emails into the "profile" object.\n===');
-		return callback(new Error('Congrats! So far so good -- please see server log for details'));
 
 		callback(null, profile);
 	}
@@ -256,7 +266,7 @@
 			}
 		], function(err) {
 			if (err) {
-				winston.error('[sso-oauth] Could not remove OAuthId data for uid ' + data.uid + '. Error: ' + err);
+				winston.error('[sso-metry] Could not remove OAuthId data for uid ' + data.uid + '. Error: ' + err);
 				return callback(err);
 			}
 
