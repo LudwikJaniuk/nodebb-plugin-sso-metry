@@ -268,6 +268,10 @@
     async.waterfall([
       async.apply(User.getUserField, data.uid, constants.name + 'Id'),
       function (oAuthIdToDelete, next) {
+        if(!oAuthIdToDelete){
+          next(new Error("Got no oAuthIdToDelete."));
+          return;
+        }
         db.deleteObjectField(constants.name + 'Id:uid', oAuthIdToDelete, next);
       }
     ], function (err) {
@@ -276,8 +280,16 @@
         return callback(err);
       }
 
+      winston.verbose('[sso-metry] Removed OAuthId data for uid ' + data.uid + '.');
+
       callback(null, data);
     });
+  };
+
+  // If this filter is not there, the deleteUserData function will fail when getting the metryId for deletion.
+  OAuth.whitelistFields = function(params, callback) {
+    params.whitelist.push(constants.name + 'Id');
+    callback(null, params);
   };
 
   module.exports = OAuth;
