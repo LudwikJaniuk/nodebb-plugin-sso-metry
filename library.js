@@ -269,8 +269,7 @@
       async.apply(User.getUserField, data.uid, constants.name + 'Id'),
       function (oAuthIdToDelete, next) {
         if(!oAuthIdToDelete){
-          next(new Error("Got no oAuthIdToDelete."));
-          return;
+          winston.verbose("Got no oAuthIdToDelete when deleting account"));
         }
         db.deleteObjectField(constants.name + 'Id:uid', oAuthIdToDelete, next);
       }
