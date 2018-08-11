@@ -27,6 +27,8 @@
     winston = module.parent.require('winston'),
     async = module.parent.require('async');
 
+	var controllers = require('./lib/controllers')(meta);
+
   var authenticationController = module.parent.require('./controllers/authentication');
 
   /**
@@ -81,7 +83,42 @@
     configOk = true;
   }
 
+  OAuth.init = function(params, callback) {
+		var app = params.app;
+		var router = params.router;
+		var hostMiddleware = params.middleware;
+		var hostControllers = params.controllers;
+
+		router.get('/admin/plugins/sso-metry', hostMiddleware.admin.buildHeader, controllers.renderAdminPage);
+		router.get('/api/admin/plugins/sso-metry', controllers.renderAdminPage);
+
+		const key = "bypass-GDPR";
+
+		async.waterfall([
+			function(next) {
+				meta.settings.get("sso-metry", next);
+			},
+      function(settings, next) {
+        if(Object.keys(settings).indexOf(key) != -1) {
+        	return next();
+				}
+
+        var toSet = {};
+        toSet[key] = false;
+        meta.settings.set("sso-metry", toSet, next);
+      }
+		], function(err) {
+			if(err) {
+				winston.warn(err);
+			}
+			winston.info("Set up plugin sso metry!")
+
+			callback();
+		})
+	}
+
   OAuth.getStrategy = function (strategies, callback) {
+
     if (configOk) {
       passportOAuth = require('passport-oauth')[constants.type === 'oauth' ? 'OAuthStrategy' : 'OAuth2Strategy'];
 
@@ -237,16 +274,27 @@
           }
 
           if (!uid) {
-            User.create({
-              username: payload.handle,
-              email: payload.email
-            }, function (err, uid) {
-              if (err) {
-                return callback(err);
-              }
+          	meta.settings.get("sso-metry", function(err, settings) {
+          		if(err) {
+          			winston.warn(err);
+							}
 
-              success(uid);
-            });
+          		var userCreateInfo = {
+								username: payload.handle,
+								email: payload.email
+							};
+          		if(settings["bypass-GDPR"] === 'on') { // I hate the on/off usage but ok... couldnt find the soruce code
+          			userCreateInfo.gdpr_consent = true;
+							}
+
+							User.create(userCreateInfo, function (err, uid) {
+								if (err) {
+									return callback(err);
+								}
+
+								success(uid);
+							});
+						});
           } else {
             success(uid); // Existing account -- merge
           }
@@ -269,7 +317,8 @@
       async.apply(User.getUserField, data.uid, constants.name + 'Id'),
       function (oAuthIdToDelete, next) {
         if(!oAuthIdToDelete){
-          winston.verbose("Got no oAuthIdToDelete when deleting account"));
+          next(new Error("Got no oAuthIdToDelete."));
+          return;
         }
         db.deleteObjectField(constants.name + 'Id:uid', oAuthIdToDelete, next);
       }
@@ -290,6 +339,16 @@
     params.whitelist.push(constants.name + 'Id');
     callback(null, params);
   };
+
+	OAuth.addAdminNavigation = function(header, callback) {
+		header.plugins.push({
+			route: '/plugins/sso-metry',
+			icon: 'fa-tint',
+			name: 'sso-metry'
+		});
+
+		callback(null, header);
+	};
 
   module.exports = OAuth;
 }(module));

@@ -1,12 +1,42 @@
 {
-  "name": "nodebb-plugin-sso-metry",
-  "version": "0.4.2",
-  "description": "NodeBB Metry SSO",
-  "main": "library.js",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/tornqvist/nodebb-plugin-sso-metry"
+  "_from": "nodebb-plugin-sso-metry@0.4.1",
+  "_id": "nodebb-plugin-sso-metry@0.4.1",
+  "_inBundle": false,
+  "_integrity": "sha512-DuYTY5wmaE1CrO8zR5poUfZ1pF0cu4ey9Bxg/VK/BA5otLOk3C1zxge2wgeQpOlpl21QhXlXt5IBy/ipXC6SZg==",
+  "_location": "/nodebb-plugin-sso-metry",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "version",
+    "registry": true,
+    "raw": "nodebb-plugin-sso-metry@0.4.1",
+    "name": "nodebb-plugin-sso-metry",
+    "escapedName": "nodebb-plugin-sso-metry",
+    "rawSpec": "0.4.1",
+    "saveSpec": null,
+    "fetchSpec": "0.4.1"
   },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/nodebb-plugin-sso-metry/-/nodebb-plugin-sso-metry-0.4.1.tgz",
+  "_shasum": "5a0f3e1392cf1f9cb4e938c03ad6ef8bb68d5e67",
+  "_spec": "nodebb-plugin-sso-metry@0.4.1",
+  "_where": "/mnt/4E6A6B716A6B54AD/code/brf/ljNodeBB",
+  "author": {
+    "name": "Julian Lam",
+    "email": "julian@nodebb.org"
+  },
+  "bugs": {
+    "url": "https://github.com/tornqvist/nodebb-plugin-sso-metry/issues"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "passport-oauth": "~1.0.0"
+  },
+  "deprecated": false,
+  "description": "NodeBB Metry SSO",
+  "homepage": "https://github.com/tornqvist/nodebb-plugin-sso-metry#readme",
   "keywords": [
     "nodebb",
     "plugin",
@@ -17,21 +47,16 @@
     "login",
     "registration"
   ],
-  "author": {
-    "name": "Julian Lam",
-    "email": "julian@nodebb.org"
-  },
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/tornqvist/nodebb-plugin-sso-metry/issues"
-  },
-  "readme": "",
-  "readmeFilename": "README.md",
-  "dependencies": {
-    "passport-oauth": "~1.0.0"
-  },
+  "main": "library.js",
+  "name": "nodebb-plugin-sso-metry",
   "nbbpm": {
     "compatibility": "^1.0.1",
     "index": false
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tornqvist/nodebb-plugin-sso-metry.git"
+  },
+  "version": "0.4.1"
 }
