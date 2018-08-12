@@ -16,20 +16,21 @@
     Step 4: If all goes well, you'll be able to login/register via your OAuth endpoint credentials.
   */
 
-  var User = module.parent.require('./user'),
-    Groups = module.parent.require('./groups'),
-    meta = module.parent.require('./meta'),
-    db = module.parent.require('../src/database'),
-    passport = module.parent.require('passport'),
-    fs = module.parent.require('fs'),
-    path = module.parent.require('path'),
-    nconf = module.parent.require('nconf'),
-    winston = module.parent.require('winston'),
-    async = module.parent.require('async');
+  var User = module.parent.require('./user');
+  var Groups = module.parent.require('./groups');
+  var meta = module.parent.require('./meta');
+  var db = module.parent.require('../src/database');
+  var passport = module.parent.require('passport');
+  var fs = module.parent.require('fs');
+  var path = module.parent.require('path');
+  var nconf = module.parent.require('nconf');
+  var winston = module.parent.require('winston');
+  var async = module.parent.require('async');
 
 	var controllers = require('./lib/controllers')(meta);
-
   var authenticationController = module.parent.require('./controllers/authentication');
+
+  const gdprKey = "bypass-GDPR";
 
   /**
    * REMEMBER
@@ -69,9 +70,11 @@
       userRoute: 'https://app.metry.io/api/v2/accounts/me',	// This is the address to your app's "user profile" API endpoint (expects JSON)
       collaboratorRoute: 'https://app.metry.io/api/v2/accounts/me/authenticated_collaborator',
       scope: nconf.get('oauth:scope') || 'basic'
-    }),
-    configOk = false,
-    OAuth = {}, passportOAuth, opts;
+    });
+  var configOk = false;
+  var OAuth = {};
+  var passportOAuth;
+  var opts;
 
   if (!constants.name) {
     winston.error('[sso-metry] Please specify a name for your OAuth provider (library.js:32)');
@@ -83,6 +86,25 @@
     configOk = true;
   }
 
+
+  function defaultGdprKey(callback) {
+		async.waterfall([
+			function(next) {
+				meta.settings.get("sso-metry", next);
+			},
+      function(settings, next) {
+        if(Object.keys(settings).indexOf(gdprKey) != -1) {
+        	return next();
+				}
+
+        var toSet = {};
+        toSet[gdprKey] = false;
+        meta.settings.set("sso-metry", toSet, next);
+      }
+		], callback
+		);
+  }
+
   OAuth.init = function(params, callback) {
 		var app = params.app;
 		var router = params.router;
@@ -92,33 +114,17 @@
 		router.get('/admin/plugins/sso-metry', hostMiddleware.admin.buildHeader, controllers.renderAdminPage);
 		router.get('/api/admin/plugins/sso-metry', controllers.renderAdminPage);
 
-		const key = "bypass-GDPR";
-
-		async.waterfall([
-			function(next) {
-				meta.settings.get("sso-metry", next);
-			},
-      function(settings, next) {
-        if(Object.keys(settings).indexOf(key) != -1) {
-        	return next();
-				}
-
-        var toSet = {};
-        toSet[key] = false;
-        meta.settings.set("sso-metry", toSet, next);
+		defaultGdprKey(function(err) {
+      if(err) {
+        winston.warn(err);
       }
-		], function(err) {
-			if(err) {
-				winston.warn(err);
-			}
-			winston.info("Set up plugin sso metry!")
+      winston.info("Set up plugin sso metry!")
 
-			callback();
-		})
-	}
+      callback();
+    });
+	};
 
   OAuth.getStrategy = function (strategies, callback) {
-
     if (configOk) {
       passportOAuth = require('passport-oauth')[constants.type === 'oauth' ? 'OAuthStrategy' : 'OAuth2Strategy'];
 
