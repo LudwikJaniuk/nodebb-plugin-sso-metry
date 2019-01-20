@@ -16,10 +16,10 @@
     Step 4: If all goes well, you'll be able to login/register via your OAuth endpoint credentials.
   */
 
-  var User = module.parent.require('./user');
-  var Groups = module.parent.require('./groups');
-  var meta = module.parent.require('./meta');
-  var db = module.parent.require('../src/database');
+  var User = require.main.require('./src/user');
+  var Groups = require.main.require('./src/groups');
+  var meta = require.main.require('./src/meta');
+  var db = require.main.require('./src/database');
   var passport = module.parent.require('passport');
   var fs = module.parent.require('fs');
   var path = module.parent.require('path');
@@ -28,7 +28,7 @@
   var async = module.parent.require('async');
 
 	var controllers = require('./lib/controllers')(meta);
-  var authenticationController = module.parent.require('./controllers/authentication');
+  var authenticationController = require.main.require('./src/controllers/authentication');
 
   const gdprKey = "bypass-GDPR";
 
